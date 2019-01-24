@@ -11,8 +11,9 @@ TYPE = 'TYPE'
 PORT = 'PORT'
 
 
-SOCKET_CLOSED = 'socket has been closed'
+LOCAL_SOCKET_CLOSED = 'local socket has been closed'
 CONNECTION_RESET_BY_PEER = 'connection has been reset by peer'
+REMOTE_SOCKET_CLOSED = 'remote socket has been closed'
 
 
 def about_to(action: str):
@@ -25,6 +26,13 @@ def succeed_to(action: str):
 
 def about_to_stop(action: str, because: str = None):
 	rv = 'about to stop {}'.format(action)
+	if because:
+		rv += ' because {}'.format(because)
+	return rv
+
+
+def failed_to(action: str, because: str = None):
+	rv = 'failed to {}'.format(action)
 	if because:
 		rv += ' because {}'.format(because)
 	return rv

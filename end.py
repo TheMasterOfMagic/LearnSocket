@@ -56,7 +56,7 @@ class End:
 				self.udp_socket.sendto(raw_data, address)
 			except OSError as e:
 				if e.args[0] == 9:
-					debug(about_to_stop(action, SOCKET_CLOSED))
+					debug(about_to_stop(action, LOCAL_SOCKET_CLOSED))
 				else:
 					raise e
 			else:
@@ -69,7 +69,7 @@ class End:
 			udp_address = self.udp_socket.getsockname()
 		except OSError as e:
 			if e.args[0] == 9:
-				debug(about_to_stop(start(action), SOCKET_CLOSED))
+				debug(about_to_stop(start(action), LOCAL_SOCKET_CLOSED))
 			else:
 				raise e
 		else:
@@ -81,7 +81,7 @@ class End:
 					raw_data, address = self.udp_socket.recvfrom(65535)
 				except OSError as e:
 					if e.args[0] == 9:
-						debug(about_to_stop(action, SOCKET_CLOSED))
+						debug(about_to_stop(action, LOCAL_SOCKET_CLOSED))
 						break
 					else:
 						raise e
@@ -107,8 +107,15 @@ class End:
 			for i in range(LENGTH_SIZE):
 				raw_size = bytes([size % 0x100]) + raw_size
 				size //= 0x100
-			remote_socket.sendall(raw_size+raw_data)
-			debug(succeed_to(action))
+			try:
+				remote_socket.sendall(raw_size+raw_data)
+			except BrokenPipeError as e:
+				if e.args[0] == 32:
+					debug(failed_to(action, REMOTE_SOCKET_CLOSED))
+				else:
+					raise e
+			else:
+				debug(succeed_to(action))
 
 	def recv_tcp(self, remote_socket: socket.socket):
 		address = remote_socket.getpeername()
@@ -126,7 +133,7 @@ class End:
 					raise e
 			except OSError as e:
 				if e.args[0] == 9:
-					debug(about_to_stop(action, SOCKET_CLOSED))
+					debug(about_to_stop(action, LOCAL_SOCKET_CLOSED))
 					break
 				else:
 					raise e
@@ -152,6 +159,7 @@ class Client(End):
 	"""
 	def __init__(self):
 		super().__init__()
+		self.remote_address = None
 		# 广播CLIENT_HELLO
 		data = {TYPE: CLIENT_HELLO}
 		self.broadcast_udp(data)
@@ -170,6 +178,7 @@ class Client(End):
 			self.connect(address)
 			for i in range(randint(0, 5)):
 				if random() <= 0.2:
+					debug('about to directly disconnect with {}'.format(addr))
 					self.tcp_socket.close()
 					self.udp_socket.close()
 					break
@@ -186,18 +195,20 @@ class Client(End):
 
 	def connect(self, address):
 		self.tcp_socket.connect(address)
+		self.remote_address = address
 		addr = self.format_address(address)
 		debug('connected with {}'.format(addr))
 		threading.Thread(target=self.recv_tcp, args=(self.tcp_socket,)).start()
 
 	def disconnect(self):
-		address = self.tcp_socket.getpeername()
+		address = self.remote_address
 		addr = self.format_address(address)
 		data = {TYPE: DISCONNECT}
 		self.send_tcp(data, self.tcp_socket)
 		self.tcp_socket.close()
 		debug('disconnected with {}'.format(addr))
 		self.tcp_socket = socket.socket(type=socket.SOCK_STREAM)
+		self.remote_address = None
 
 
 class Server(End):
