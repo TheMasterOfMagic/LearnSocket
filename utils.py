@@ -12,6 +12,7 @@ PORT = 'PORT'
 
 
 SOCKET_CLOSED = 'socket has been closed'
+CONNECTION_RESET_BY_PEER = 'connection has been reset by peer'
 
 
 def about_to(action: str):

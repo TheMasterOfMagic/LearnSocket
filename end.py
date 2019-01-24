@@ -118,6 +118,12 @@ class End:
 		while True:
 			try:
 				raw_size = remote_socket.recv(LENGTH_SIZE)
+			except ConnectionResetError as e:
+				if e.args[0] == 54:
+					debug(about_to_stop(action, CONNECTION_RESET_BY_PEER))
+					break
+				else:
+					raise e
 			except OSError as e:
 				if e.args[0] == 9:
 					debug(about_to_stop(action, SOCKET_CLOSED))
@@ -243,7 +249,8 @@ class Server(End):
 		elif t == MESSAGE:
 			# for test
 			# 以一定几率直接关闭socket
-			if random() <= 0.2:
+			if random() <= 0.8:
+				debug('about to directly disconnect with {}'.format(addr))
 				self.disconnect(remote_socket)
 
 	def get_tcp_port(self):
