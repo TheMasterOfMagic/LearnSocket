@@ -297,7 +297,7 @@ class Server(End):
 			else:
 				address = client_socket.getpeername()
 				addr = self.format_address(address)
-				info('connected with {}'.format(addr))
+				debug('connected with {}'.format(addr))
 				self.connected_client_socket_set.add(client_socket)
 				threading.Thread(target=self.recv_tcp, args=(client_socket,)).start()
 		debug(stopped(action))
